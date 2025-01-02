@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CloudFormation Template for AWS Step Function"
+
+Resources:
+  StepFunctionExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "states.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "StepFunctionExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:*"
+                Resource: "*"
+
+  MyStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      StateMachineName: "MyStateMachine"
+      RoleArn: !GetAtt StepFunctionExecutionRole.Arn
+      DefinitionString:
+        Fn::Sub: |
+          {
+            "Comment": "A workflow to process file lists from S3.",
+            "StartAt": "ProcessFileList",
+            "States": {
+              "ProcessFileList": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "yourLambdaFunctionName",
+                  "Payload": {
+                    "bucketName.$": "$.bucketName",
+                    "fileList.$": "$.fileList"
+                  }
+                },
+                "End": true
+              }
+            }
+          }
